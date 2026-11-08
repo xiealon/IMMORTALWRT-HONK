@@ -1,4 +1,7 @@
 name: Build 25.12.x x86-64
+# trigger-index-rebuild: 2026-11-09 仓库由 IMMORTALWRT-HONK 改名为 25.12 后
+# GitHub 未重建 workflow 索引（/actions/workflows 返回 total=0），
+# 改动本文件一次可强制重新扫描。功能零影响。
 
 on:
   workflow_dispatch:
