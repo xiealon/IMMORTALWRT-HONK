@@ -249,12 +249,15 @@ _gh_fixname() {
     return 1
 }
 
-# honk：apk 改从自家的 CloudRunFilesBuilder Release 取，不再挂 daeuniverse 第三方源。
-# 为什么换：openwrt.daeuniverse.org 是上游 beta 期临时源，包随时可能被撤；
-# 而 honk-apk Release 是同一套 apk 的镜像，版本由 CloudRunFilesBuilder 定时跟踪。
+# honk：apk 从自家的 CloudRunFilesBuilder Release 取，源镜像自 kenzok8/openwrt-honk。
+# 【2026-11-10】整条取包链换成 kenzok8 那套（用户定：他那个方便）。
+#   旧：daeuniverse feed 五件套 —— honk + luci-app-honk + luci-lib-daeuniverse
+#       + luci-i18n-daeuniverse-zh-cn + vmlinux-btf-builtin（1 B 占位哨兵）。
+#   新：两件套 —— honk + luci-app-honk。doona 面板（3.8 MB 静态文件）直接打进
+#       luci-app-honk，中文翻译是包内 honk.zh-cn.lmo，daeuniverse 那两件全不需要；
+#       kenzok8 的 DEPENDS 不写 vmlinux-btf-builtin，缺 BTF 由 control.sh 启动时
+#       报 kernel_btf_missing，占位哨兵也就没用了。
 # 落点与 OpenClash 一致（packages/），make image 会把它当本地包装进固件。
-# 依赖一并取：luci-app-honk 要 luci-lib-daeuniverse；vmlinux-btf-builtin 是 BTF 哨兵，
-# 装前检查 /sys/kernel/btf/vmlinux，缺了 honk-core 起不来。
 if echo "$PACKAGES" | grep -q "honk"; then
     _hk_api="https://api.github.com/repos/xiealon/CloudRunFilesBuilder/releases/tags/honk-apk"
     echo "==> honk: 读取 Release 资产清单"
@@ -265,7 +268,7 @@ if echo "$PACKAGES" | grep -q "honk"; then
         exit 1
     fi
     _hk_n=0
-    for _hk_pkg in honk luci-app-honk luci-lib-daeuniverse luci-i18n-daeuniverse-zh-cn vmlinux-btf-builtin; do
+    for _hk_pkg in honk luci-app-honk; do
         # 【2026-11-09 修】取版本号最大的，不取第一个匹配。
         # 起因：honk-apk Release 升到 beta6 时，旧的 beta4 资产没被删掉，
         # assets 列表里 beta4 排在前面，head -n1 会挑到旧版 —— 构建出来还是旧固件。
@@ -287,10 +290,7 @@ if echo "$PACKAGES" | grep -q "honk"; then
     done
     echo "✅ honk: $_hk_n 个 apk 已进 packages/（版本随 Release 走）"
     ls -l /home/build/immortalwrt/packages/honk-*.apk \
-          /home/build/immortalwrt/packages/luci-app-honk-*.apk \
-          /home/build/immortalwrt/packages/luci-lib-daeuniverse-*.apk \
-          /home/build/immortalwrt/packages/luci-i18n-daeuniverse-zh-cn-*.apk \
-          /home/build/immortalwrt/packages/vmlinux-btf-builtin-*.apk 2>/dev/null || true
+          /home/build/immortalwrt/packages/luci-app-honk-*.apk 2>/dev/null || true
 else
     echo "⚪️ 未选择 honk"
 fi
@@ -713,7 +713,7 @@ fi
 # 探针每轮报缺失、每轮修不好 —— 那不是保护，是每轮白报一次警。
 # 所以在构建期当场核对，别把空头支票留到真机。
 if echo "$PACKAGES" | grep -q "honk"; then
-    _ak_need_honk="honk luci-app-honk luci-lib-daeuniverse luci-i18n-daeuniverse-zh-cn vmlinux-btf-builtin"
+    _ak_need_honk="honk luci-app-honk"
     _ak_honk_miss=""
     for _ak_np in $_ak_need_honk; do
         ls "$_AK_DIR"/"$_ak_np"-[0-9]*.apk >/dev/null 2>&1 || _ak_honk_miss="$_ak_honk_miss $_ak_np"
@@ -724,7 +724,7 @@ if echo "$PACKAGES" | grep -q "honk"; then
         ls -la "$_AK_DIR" 2>/dev/null | grep -i honk || true
         exit 1
     fi
-    echo "==> [apk-cache] honk 保护组齐备（5 包）：$_ak_need_honk"
+    echo "==> [apk-cache] honk 保护组齐备（2 包）：$_ak_need_honk"
 fi
 
 # geo 两包的核对放在来源 B 之后 —— 它们来自官方源，不是 packages/。
