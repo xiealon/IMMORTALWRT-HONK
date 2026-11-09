@@ -600,7 +600,8 @@ crowdsec-firewall-bouncer luci-app-crowdsec-firewall-bouncer
 luci-i18n-crowdsec-firewall-bouncer-zh-cn nftables-json
 v2ray-geoip v2ray-geosite sing-box
 geoview
-adblock luci-app-adblock luci-i18n-adblock-zh-cn"
+adblock luci-app-adblock luci-i18n-adblock-zh-cn
+coreutils-stat sqlite3-cli"
 
 # 来源 A：packages/ 里 run 包解出的 apk（第三方包，官方源没有）
 #
@@ -713,7 +714,7 @@ fi
 # 探针每轮报缺失、每轮修不好 —— 那不是保护，是每轮白报一次警。
 # 所以在构建期当场核对，别把空头支票留到真机。
 if echo "$PACKAGES" | grep -q "honk"; then
-    _ak_need_honk="honk luci-app-honk"
+    _ak_need_honk="honk luci-app-honk coreutils-stat sqlite3-cli"
     _ak_honk_miss=""
     for _ak_np in $_ak_need_honk; do
         ls "$_AK_DIR"/"$_ak_np"-[0-9]*.apk >/dev/null 2>&1 || _ak_honk_miss="$_ak_honk_miss $_ak_np"
@@ -724,7 +725,7 @@ if echo "$PACKAGES" | grep -q "honk"; then
         ls -la "$_AK_DIR" 2>/dev/null | grep -i honk || true
         exit 1
     fi
-    echo "==> [apk-cache] honk 保护组齐备（2 包）：$_ak_need_honk"
+    echo "==> [apk-cache] honk 保护组齐备（2 包 + 2 依赖）：$_ak_need_honk"
 fi
 
 # geo 两包的核对放在来源 B 之后 —— 它们来自官方源，不是 packages/。
