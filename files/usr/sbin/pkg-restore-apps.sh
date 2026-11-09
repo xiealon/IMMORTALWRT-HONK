@@ -183,7 +183,8 @@ _PA_ADBLOCK="adblock luci-app-adblock luci-i18n-adblock-zh-cn"
 # 【2026-11-02】daed 在 25.12 线已被 honk 取代（用户定），原来的 geo 软链接判据一并删除：
 #   honk 的规则集不走 /usr/share/daed/*.dat 软链接，而是按 native_api.geosite_download_url /
 #   geoip_download_url 自己下到 data_dir（默认 /etc/honk/data），包在册即认定数据齐备。
-#   honk 是官方 daeuniverse 源的包，预装进固件后 /rom/lib/apk/db/installed 有 P:honk，
+#   honk / luci-app-honk 来自 kenzok8/openwrt-honk 的 Release（2 件套），build25.sh 的
+#   CUSTOM_PACKAGES 写死后随固件装进 /rom，/rom/lib/apk/db/installed 有 P:honk，
 #   _pa_should 照常命中；被 force-remove 时同样能判出来。
 
 _PA_LIST="${CS_PROBE_APPS:-$_PA_CLASHOO $_PA_HONK $_PA_COMMON $_PA_GEO $_PA_ADBLOCK}"
@@ -238,7 +239,7 @@ _pa_files_ok() {
     [ -f "$_paf_l" ] || return 0
     while IFS= read -r _paf_f; do
         case "$_paf_f" in
-        /usr/bin/*|/usr/sbin/*|/etc/init.d/*|/lib/*.so*|/usr/lib/*.so*) ;;
+        /usr/bin/*|/usr/sbin/*|/etc/init.d/*|/lib/*.so*|/usr/lib/*.so*|/usr/libexec/*) ;;
         *) continue ;;
         esac
         [ -e "$_paf_f" ] || return 1
