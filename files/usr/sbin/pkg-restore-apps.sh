@@ -100,19 +100,19 @@ _RESTORE="${RESTORE_BIN:-/usr/sbin/pkg-restore.sh}"
 #
 # 留下的 14 个包全部 firmware=yes + pkg=yes：
 #   clashoo / luci-app-clashoo / luci-i18n-clashoo-zh-cn
-#   honk / luci-app-honk
+#   daed / luci-app-daede / vmlinux-btf
 #   sing-box
 #   v2ray-geoip / v2ray-geosite（2026-11-02 补入，只判包不判文件，见 _PA_GEO）
 #   adblock / luci-app-adblock / luci-i18n-adblock-zh-cn（2026-11-02 补入，见 _PA_ADBLOCK；
 #     这三包 pkg=yes 的前提是把它们收进 build25.sh 的 _AK_WANT —— 当日实测包库
 #     116 个 apk 里 adblock 相关 0 个，光加保护组修不动，已一并收进白名单）
 #
-# 【2026-11-10】vmlinux-btf-builtin 已移出 honk 组：取包链换成 kenzok8/openwrt-honk
-#   之后，他的 honk DEPENDS 里没有这一项（15 项用户态 + 4 项 kmod），占位哨兵失效。
-#   BTF 仍由内核自带（25.12 固件 CONFIG_KERNEL_DEBUG_INFO_BTF=y，实测
-#   /sys/kernel/btf/vmlinux 5,147,981 B）；真缺了，kenzok8 的 control.sh 会在
-#   check_kernel 里报 kernel_btf_missing 并拒绝启动，比 1 B 哨兵更直接。
-#   sing-box
+# vmlinux-btf 为什么也进 daed 组（2026-11-10）：
+#   daed 的 Makefile 写着 +DAED_USE_VMLINUX_BTF:vmlinux-btf，包内 Depends
+#   有它。删掉之后 daed 的依赖链就断，apk 任何一次操作都可能顺手把 daed 带走。
+#   它同时是哨兵：装的是与内核同版的 BTF（6.12.103），启动校验读的就是它；
+#   版本对不上时 daed 起不来，所以它在册 = 「BTF 与内核配套」这件事成立。
+#   恢复走 _pr_tree 从 /rom 拷文件，不需要 apk 源，所以保护是真的生效。
 #
 # 内核模块全部移出本表，改由 pkg-restore.sh --deps 做文件级恢复。
 # 原因是决定性的（2026-10-29 实测）：kmod-* 在固件出厂库里（P:kmod-tun 命中），
@@ -139,14 +139,14 @@ _RESTORE="${RESTORE_BIN:-/usr/sbin/pkg-restore.sh}"
 #   libopenssl3        固件库有、包库无 → 装不回；且它是全系统的 TLS 底座，
 #                      不属于某一个应用的依赖
 _PA_CLASHOO="clashoo luci-app-clashoo luci-i18n-clashoo-zh-cn"
-# 【2026-11-10】换成 kenzok8 那套后，honk 组由 5 件缩到 2 件。
-#   去掉的三件：luci-lib-daeuniverse / luci-i18n-daeuniverse-zh-cn 已不是
-#   luci-app-honk 的依赖（doona 面板与 honk.zh-cn.lmo 都在包内）；
-#   vmlinux-btf-builtin 也不再被 honk 的 DEPENDS 引用。
-#   内核与 BTF 本来就不在这张表里（见文件头：kmod 走 pkg-restore.sh --deps，
-#   25.12 内核自带 /sys/kernel/btf/vmlinux），这一层与保护组无关。
-#   build25.sh 的 honk 保护组断言现在盯着这 2 个。
-_PA_HONK="honk luci-app-honk"
+# 【2026-11-10】官方线改用 daed（用户定），保护组整体换过来，三件：
+#   daed          主程序，/usr/bin/daed + /etc/init.d/daed，内嵌 Web UI
+#   luci-app-daede LuCI 界面（kenzok8 的 1.15-r13，自带中文，没有单独 i18n 包）
+#   vmlinux-btf   BTF 包，与内核同版（6.12.103），daed 的 Depends 里有它
+# 三件都在包库 /rom/root/apk-cache 里 —— build25.sh 的 daed 段下载、
+# 构建期断言 _ak_need_daed 也会在打包前核实一遍，所以探针判出缺失时
+# 能从本地装回，不需要联网。
+_PA_DAED="daed luci-app-daede vmlinux-btf"
 # 【2026-11-02】geo 数据单独成组：包级判据（apk info -e），不判文件。
 #
 # 这一组负责的只是「包被人 apk del 掉」——装回时连文件带记账一起回来。
@@ -183,11 +183,10 @@ _PA_ADBLOCK="adblock luci-app-adblock luci-i18n-adblock-zh-cn"
 # 【2026-11-02】daed 在 25.12 线已被 honk 取代（用户定），原来的 geo 软链接判据一并删除：
 #   honk 的规则集不走 /usr/share/daed/*.dat 软链接，而是按 native_api.geosite_download_url /
 #   geoip_download_url 自己下到 data_dir（默认 /etc/honk/data），包在册即认定数据齐备。
-#   honk / luci-app-honk 来自 kenzok8/openwrt-honk 的 Release（2 件套），build25.sh 的
-#   CUSTOM_PACKAGES 写死后随固件装进 /rom，/rom/lib/apk/db/installed 有 P:honk，
+#   honk 是官方 daeuniverse 源的包，预装进固件后 /rom/lib/apk/db/installed 有 P:honk，
 #   _pa_should 照常命中；被 force-remove 时同样能判出来。
 
-_PA_LIST="${CS_PROBE_APPS:-$_PA_CLASHOO $_PA_HONK $_PA_COMMON $_PA_GEO $_PA_ADBLOCK}"
+_PA_LIST="${CS_PROBE_APPS:-$_PA_CLASHOO $_PA_GEO $_PA_DAED $_PA_COMMON $_PA_ADBLOCK}"
 
 log() { printf '[APP] %s\n' "$*"; }
 
@@ -239,7 +238,7 @@ _pa_files_ok() {
     [ -f "$_paf_l" ] || return 0
     while IFS= read -r _paf_f; do
         case "$_paf_f" in
-        /usr/bin/*|/usr/sbin/*|/etc/init.d/*|/lib/*.so*|/usr/lib/*.so*|/usr/libexec/*) ;;
+        /usr/bin/*|/usr/sbin/*|/etc/init.d/*|/lib/*.so*|/usr/lib/*.so*) ;;
         *) continue ;;
         esac
         [ -e "$_paf_f" ] || return 1
@@ -317,6 +316,32 @@ _pa_repair() {
     [ -z "$(_pa_missing)" ]
 }
 
+# 【2026-11-10.0525】删除重建（用户定：装回失败就删了重装）。
+# 为什么 --force 不够：--force 走 PCR_FORCE=1 -> apk fix，只按包内容重铺文件、
+# **不动记账**。记账本身坏掉时（包在册但实际不在 / 文件与记账分裂 / conffiles
+# 状态错乱）它会一直报「成功」，复判却依然缺 —— 探针就只能反复重试到 need-human。
+# 删除重建把记账和残留一起清掉，从零装回，是最后一招。
+# 只删主包、不删依赖：不带 --rdepends（apk）/ 用 --force-depends（opkg），
+# 避免把别的应用依赖的共享库一起拖走。
+_pa_rebuild() {
+    _prb_n=0
+    for _prb_p in $(_pa_missing); do
+        _prb_n=$((_prb_n + 1))
+        log "重建 $_prb_p（先删除再重装）"
+        # --no-network：本地库装，不等镜像索引（没网时不会卡住）
+        apk del --no-network "$_prb_p" >/dev/null 2>&1 ||
+            log "删除 $_prb_p 失败（继续尝试重装，结果以复判为准）"
+        if _pa_installed "$_prb_p"; then
+            "$_RESTORE" --force "$_prb_p" || log "重建 $_prb_p 失败（强制重装没成功）"
+        else
+            "$_RESTORE" --tree "$_prb_p" || log "重建 $_prb_p 失败（依赖树装回失败）"
+        fi
+    done
+    [ "$_prb_n" -gt 0 ] || log "无需重建（没有「该有却缺失」的应用）"
+    # 同 _pa_repair：不看删/装的退出码，只认复判。
+    [ -z "$(_pa_missing)" ]
+}
+
 case "${1:---repair}" in
 --check)
     _pa_check && exit 0 || exit 1
@@ -328,8 +353,11 @@ case "${1:---repair}" in
 --repair)
     _pa_repair && exit 0 || exit 1
     ;;
+--rebuild)
+    _pa_rebuild && exit 0 || exit 1
+    ;;
 -*)
-    echo "用法：$0 --check | --list | --repair" >&2
+    echo "用法：$0 --check | --list | --repair | --rebuild" >&2
     exit 2
     ;;
 *)
