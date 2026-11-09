@@ -100,18 +100,21 @@ _RESTORE="${RESTORE_BIN:-/usr/sbin/pkg-restore.sh}"
 #
 # 留下的 14 个包全部 firmware=yes + pkg=yes：
 #   clashoo / luci-app-clashoo / luci-i18n-clashoo-zh-cn
-#   honk / luci-app-honk
+#   honk / luci-app-honk / luci-lib-daeuniverse / luci-i18n-daeuniverse-zh-cn /
+#   vmlinux-btf-builtin
 #   sing-box
 #   v2ray-geoip / v2ray-geosite（2026-11-02 补入，只判包不判文件，见 _PA_GEO）
 #   adblock / luci-app-adblock / luci-i18n-adblock-zh-cn（2026-11-02 补入，见 _PA_ADBLOCK；
 #     这三包 pkg=yes 的前提是把它们收进 build25.sh 的 _AK_WANT —— 当日实测包库
 #     116 个 apk 里 adblock 相关 0 个，光加保护组修不动，已一并收进白名单）
 #
-# 【2026-11-10】vmlinux-btf-builtin 已移出 honk 组：取包链换成 kenzok8/openwrt-honk
-#   之后，他的 honk DEPENDS 里没有这一项（15 项用户态 + 4 项 kmod），占位哨兵失效。
-#   BTF 仍由内核自带（25.12 固件 CONFIG_KERNEL_DEBUG_INFO_BTF=y，实测
-#   /sys/kernel/btf/vmlinux 5,147,981 B）；真缺了，kenzok8 的 control.sh 会在
-#   check_kernel 里报 kernel_btf_missing 并拒绝启动，比 1 B 哨兵更直接。
+# vmlinux-btf-builtin 为什么也算 honk 组的一员（2026-11-02 真机核实）：
+#   它是 honk 的硬依赖，但 installed size 只有 1 B —— 唯一内容是自己的
+#   lib/apk/packages/vmlinux-btf-builtin.list。apk 的 Depends 里写死了它，
+#   删掉之后 honk 的依赖链就断，apk 任何一次操作都可能顺手把 honk 也带走。
+#   它同时是个哨兵：pre-install 会检查 /sys/kernel/btf/vmlinux，内核没自带
+#   BTF 的机器装不上它 —— 反过来说，它在册就等于「这台机器的内核 BTF 是好的」。
+#   恢复走 _pr_tree 从 /rom 拷文件，不需要 apk 源，所以保护是真的生效。
 #   sing-box
 #
 # 内核模块全部移出本表，改由 pkg-restore.sh --deps 做文件级恢复。
@@ -139,14 +142,11 @@ _RESTORE="${RESTORE_BIN:-/usr/sbin/pkg-restore.sh}"
 #   libopenssl3        固件库有、包库无 → 装不回；且它是全系统的 TLS 底座，
 #                      不属于某一个应用的依赖
 _PA_CLASHOO="clashoo luci-app-clashoo luci-i18n-clashoo-zh-cn"
-# 【2026-11-10】换成 kenzok8 那套后，honk 组由 5 件缩到 2 件。
-#   去掉的三件：luci-lib-daeuniverse / luci-i18n-daeuniverse-zh-cn 已不是
-#   luci-app-honk 的依赖（doona 面板与 honk.zh-cn.lmo 都在包内）；
-#   vmlinux-btf-builtin 也不再被 honk 的 DEPENDS 引用。
-#   内核与 BTF 本来就不在这张表里（见文件头：kmod 走 pkg-restore.sh --deps，
-#   25.12 内核自带 /sys/kernel/btf/vmlinux），这一层与保护组无关。
-#   build25.sh 的 honk 保护组断言现在盯着这 2 个。
-_PA_HONK="honk luci-app-honk"
+# 【2026-11-02】用户定：需要的 apk 全保护 —— honk 组补上 i18n 包，凑满 5 个。
+# luci-i18n-daeuniverse-zh-cn 是 luci-app-honk 的依赖之一（LuCI 界面要它翻中文），
+# 少了它 honk 那页会退回英文，看上去像「能用」，实际是缺件。它同样在包库里
+# （build25.sh 的 honk 保护组断言盯着这 5 个），所以装得回来，够格进这张表。
+_PA_HONK="honk luci-app-honk luci-lib-daeuniverse luci-i18n-daeuniverse-zh-cn vmlinux-btf-builtin"
 # 【2026-11-02】geo 数据单独成组：包级判据（apk info -e），不判文件。
 #
 # 这一组负责的只是「包被人 apk del 掉」——装回时连文件带记账一起回来。
