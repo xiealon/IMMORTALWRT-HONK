@@ -713,8 +713,10 @@ fi
 # 靠的是 /rom/root/apk-cache 里这份本地包库。库里没有对应 apk 的话，
 # 探针每轮报缺失、每轮修不好 —— 那不是保护，是每轮白报一次警。
 # 所以在构建期当场核对，别把空头支票留到真机。
+    # 只列来自 packages/ 的包（honk-apk Release 的 2 件）。coreutils-stat / sqlite3-cli 是
+    # honk 的 feed 依赖，靠 DEPENDS 在 make image 时才落地，此处查不到，写进来必然误报。
 if echo "$PACKAGES" | grep -q "honk"; then
-    _ak_need_honk="honk luci-app-honk coreutils-stat sqlite3-cli"
+    _ak_need_honk="honk luci-app-honk"
     _ak_honk_miss=""
     for _ak_np in $_ak_need_honk; do
         ls "$_AK_DIR"/"$_ak_np"-[0-9]*.apk >/dev/null 2>&1 || _ak_honk_miss="$_ak_honk_miss $_ak_np"
@@ -725,7 +727,7 @@ if echo "$PACKAGES" | grep -q "honk"; then
         ls -la "$_AK_DIR" 2>/dev/null | grep -i honk || true
         exit 1
     fi
-    echo "==> [apk-cache] honk 保护组齐备（2 包 + 2 依赖）：$_ak_need_honk"
+    echo "==> [apk-cache] honk 保护组齐备（2 包）：$_ak_need_honk"
 fi
 
 # geo 两包的核对放在来源 B 之后 —— 它们来自官方源，不是 packages/。
