@@ -336,7 +336,7 @@ _DEPS_ROM_LIST="$ROMDIR/lib/apk/packages"
 # 自己下到 data_dir（默认 /etc/honk/data），与这两个包无关。
 _DEPS_PKGS="kmod-dummy kmod-nft-socket kmod-nft-tproxy kmod-sched-bpf kmod-nft-queue
 kmod-sched-core kmod-veth kmod-inet-diag kmod-tun kmod-netlink-diag kmod-zram
- coreutils-stat sqlite3-cli ca-bundle libcap yq ip-full firewall4 coreutils-nohup libopenssl3
+coreutils-stat sqlite3-cli ca-bundle libcap yq ip-full firewall4 coreutils-nohup libopenssl3
 v2ray-geoip v2ray-geosite"
 
 # 输出「基底有、运行侧缺或为空」的绝对路径。返回 2 = 基底里一份清单都没有。
