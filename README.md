@@ -1,4 +1,18 @@
 # ImmortalWrt-ImageBuilder-25.12
+# 特殊提示:
+若未在action的enroll处填入key
+
+后续想用脚本机制完成enroll步骤
+
+① crowdsec_enroll_key.txt注册需在文件写入注册码
+
+② 进容器后执行（STATE_DIR 默认是 <ct>/.bootstrap）
+   rm -f /<ct_root>/.bootstrap/installed
+   
+③ 重启容器/设备，或手动跑完整引导：
+   /usr/sbin/bootstrap/bootstrap.sh --full
+
+# 说明
 
 给 **honk** 用的固件构建线：自建内核（带 ftrace + BTF）+ 自建 apk 全集。
 
